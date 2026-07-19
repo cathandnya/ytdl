@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+
+# macOS
+.DS_Store
+
+# Xcode
+SafariExtension/build/
+SafariExtension/**/xcuserdata/
+SafariExtension/**/DerivedData/
+*.xcuserstate
+
+# Local build settings (contains Apple Team ID and personal path)
+SafariExtension/Local.xcconfig
+
+# Misc
+firebase-debug.log

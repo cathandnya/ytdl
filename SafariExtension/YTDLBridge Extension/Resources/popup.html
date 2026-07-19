@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>YTDL Bridge</title>
+    <style>
+      body {
+        font-family: -apple-system, system-ui, sans-serif;
+        margin: 0;
+        padding: 12px;
+        width: 200px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      button {
+        font: inherit;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        background: #f5f5f7;
+        cursor: pointer;
+      }
+      button:hover { background: #e8e8ed; }
+      button:active { background: #dcdce0; }
+      @media (prefers-color-scheme: dark) {
+        body { background: #1e1e1e; color: #f0f0f0; }
+        button {
+          background: #2d2d2f;
+          border-color: rgba(255, 255, 255, 0.15);
+          color: inherit;
+        }
+        button:hover { background: #3a3a3c; }
+        button:active { background: #48484a; }
+      }
+    </style>
+  </head>
+  <body>
+    <button id="video">Download video</button>
+    <button id="audio">Download audio only</button>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+// Local build settings for YTDL Bridge.
+// Copy this file to Local.xcconfig and fill in your own values.
+// Local.xcconfig is gitignored so your personal values stay off the repo.
+
+// Your 10-character Apple Developer Team ID.
+// Find it in Xcode > Settings > Accounts > <your Apple ID> > "Manage Certificates..." (top-right).
+DEVELOPMENT_TEAM = XXXXXXXXXX
+
+// Absolute path to the ytdl binary the app should invoke.
+// Typically the ytdl executable installed by `pip install -e .` into the venv.
+// Example: /Users/you/Documents/Development/ytdl/.venv/bin/ytdl
+YTDL_BIN_PATH = /path/to/ytdl/.venv/bin/ytdl

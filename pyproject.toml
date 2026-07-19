@@ -1,0 +1,18 @@
+[project]
+name = "ytdl"
+version = "0.1.0"
+description = "CLI tool to download YouTube videos"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "yt-dlp>=2024.0",
+    "click>=8.0",
+    "rich>=13.0",
+]
+
+[project.scripts]
+ytdl = "ytdl.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
