@@ -20,3 +20,4 @@ SafariExtension/Local.xcconfig
 
 # Misc
 firebase-debug.log
+release_notes.md
