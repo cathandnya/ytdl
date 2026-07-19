@@ -8,7 +8,7 @@
         font-family: -apple-system, system-ui, sans-serif;
         margin: 0;
         padding: 12px;
-        width: 200px;
+        width: 220px;
         display: flex;
         flex-direction: column;
         gap: 8px;
@@ -23,6 +23,16 @@
       }
       button:hover { background: #e8e8ed; }
       button:active { background: #dcdce0; }
+      .warning {
+        margin: 0;
+        padding: 6px 8px;
+        border-radius: 6px;
+        background: #fff4d6;
+        color: #7a5300;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .warning.hidden { display: none; }
       @media (prefers-color-scheme: dark) {
         body { background: #1e1e1e; color: #f0f0f0; }
         button {
@@ -32,10 +42,15 @@
         }
         button:hover { background: #3a3a3c; }
         button:active { background: #48484a; }
+        .warning { background: #3a2f10; color: #f2c96b; }
       }
     </style>
   </head>
   <body>
+    <p id="unsupported" class="warning hidden">
+      This site isn’t on the supported list. Downloading may still work if
+      yt-dlp recognizes it.
+    </p>
     <button id="video">Download video</button>
     <button id="audio">Download audio only</button>
     <script src="popup.js"></script>

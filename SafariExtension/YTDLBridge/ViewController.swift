@@ -20,15 +20,15 @@ class ViewController: NSViewController, WKNavigationDelegate, WKScriptMessageHan
     }
 
     func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
-        webView.evaluateJavaScript("show('mac')")
+        webView.evaluateJavaScript("show()")
 
         SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: extensionBundleIdentifier) { state, error in
             guard let state, error == nil else { return }
             DispatchQueue.main.async {
                 if #available(macOS 13, *) {
-                    webView.evaluateJavaScript("show('mac', \(state.isEnabled), true)")
+                    webView.evaluateJavaScript("show(\(state.isEnabled), true)")
                 } else {
-                    webView.evaluateJavaScript("show('mac', \(state.isEnabled), false)")
+                    webView.evaluateJavaScript("show(\(state.isEnabled), false)")
                 }
             }
         }
