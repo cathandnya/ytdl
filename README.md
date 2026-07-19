@@ -147,6 +147,19 @@ export NOTARY_PROFILE=AC_NOTARY    # profile created via `xcrun notarytool store
 # → build/YTDLBridge.dmg (signed with Developer ID, notarized, stapled)
 ```
 
+Cutting a full GitHub Release (tag + build + upload) in one shot:
+
+```bash
+cd SafariExtension
+export TEAM_ID=XXXXXXXXXX
+export NOTARY_PROFILE=AC_NOTARY
+./scripts/release.sh 0.1.1
+# → tags v0.1.1, builds the DMG, and publishes a GitHub Release with the asset.
+```
+
+The script refuses to run if the working tree is dirty, the tag already exists,
+or `gh` / `notarytool` credentials are missing.
+
 ### Limitations
 
 - Output is fixed to `~/Downloads/`.

@@ -116,6 +116,21 @@ export NOTARY_PROFILE=AC_NOTARY    # name you passed to xcrun notarytool store-c
 # → build/YTDLBridge.dmg
 ```
 
+## Cutting a GitHub Release in one shot
+
+`scripts/release.sh` chains everything: pre-flight checks → build the DMG →
+tag → push tag → `gh release create` with the DMG attached.
+
+```bash
+cd SafariExtension
+export TEAM_ID=XXXXXXXXXX
+export NOTARY_PROFILE=AC_NOTARY
+./scripts/release.sh 0.1.1
+```
+
+It aborts if the working tree is dirty, the tag already exists locally or on
+`origin`, or `gh`/`notarytool` credentials are missing.
+
 First-time notary credential setup:
 
 ```bash
