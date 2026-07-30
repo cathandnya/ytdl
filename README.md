@@ -127,15 +127,28 @@ notarizes a `.dmg`.
    **Download audio only**. The file appears in `~/Downloads/` and a
    notification fires when done.
 
-**Prerequisites on the user's Mac**: `ytdl` (this project's CLI, installed in a
-venv) plus `deno` and `ffmpeg`. The extension only forwards the URL; the actual
-download is performed by the local `ytdl` binary.
+**Prerequisites on the user's Mac**: `ytdl` (this project's CLI) plus `deno` and
+`ffmpeg`. The extension only forwards the URL; the actual download is performed
+by the local `ytdl` binary. Apple Silicon (arm64) only.
+
+The app locates `ytdl` automatically, checking in order:
+
+1. the path baked in at build time (`YTDL_BIN_PATH`, normally empty)
+2. a path you saved in the app's own window
+3. `~/.local/bin/ytdl`, `/opt/homebrew/bin/ytdl`, `/usr/local/bin/ytdl`
+4. `ytdl` on your login shell's `PATH` — this is what finds a venv install
+
+If autodetection picks the wrong binary or finds none, open **YTDLBridge.app**
+and set the path there. The window shows the detected path as the default; the
+**Choose…** button opens a file picker, and **Use detected path** clears the
+override.
 
 ### For developers
 
 See [`SafariExtension/SETUP.md`](SafariExtension/SETUP.md). In short: copy
-`Local.xcconfig.sample` to `Local.xcconfig`, fill in your Apple Team ID and the
-path to your `ytdl` binary, then hit ⌘R in Xcode.
+`Local.xcconfig.sample` to `Local.xcconfig`, fill in your Apple Team ID, then hit
+⌘R in Xcode. `YTDL_BIN_PATH` can stay empty — leave it unset unless you want a
+specific binary preferred over autodetection.
 
 Building a notarized `.dmg`:
 
@@ -147,7 +160,7 @@ export NOTARY_PROFILE=AC_NOTARY    # profile created via `xcrun notarytool store
 # → build/YTDLBridge.dmg (signed with Developer ID, notarized, stapled)
 ```
 
-Cutting a full GitHub Release (tag + build + upload) in one shot:
+Cutting a full GitHub Release (tag + build + upload) locally, in one shot:
 
 ```bash
 cd SafariExtension
@@ -159,6 +172,39 @@ export NOTARY_PROFILE=AC_NOTARY
 
 The script refuses to run if the working tree is dirty, the tag already exists,
 or `gh` / `notarytool` credentials are missing.
+
+### Releasing via GitHub Actions
+
+[`.github/workflows/release.yml`](.github/workflows/release.yml) does the same
+thing on a **self-hosted macOS runner** (labels: `self-hosted`, `macOS`,
+`ARM64`). Trigger it either way:
+
+- push a tag — `git tag v0.1.1 && git push origin v0.1.1`
+- or run **Actions → Release → Run workflow** and enter the version; the
+  workflow creates and pushes the tag itself.
+
+The asset is published as `YTDLBridge-<version>.dmg`.
+
+**One-time runner setup**, since the workflow uses the runner's login keychain
+rather than secrets:
+
+1. Install the **Developer ID Application** certificate into the login keychain.
+2. Register notary credentials once:
+   ```bash
+   xcrun notarytool store-credentials AC_NOTARY \
+     --apple-id "you@example.com" --team-id XXXXXXXXXX \
+     --password "app-specific-password"
+   ```
+3. Add repository variable **`TEAM_ID`** (Settings → Actions → Variables) with
+   your 10-character team ID. Optionally set `NOTARY_PROFILE` if your profile
+   isn't named `AC_NOTARY`.
+4. Make sure the runner service can read the keychain — run it as your user in a
+   GUI session, not as a LaunchDaemon, or `codesign` will fail to find the
+   identity.
+
+The workflow pre-flights the certificate, the notary profile and `TEAM_ID`
+before building, generates the gitignored `Local.xcconfig` itself, and deletes
+it afterward.
 
 ### Limitations
 

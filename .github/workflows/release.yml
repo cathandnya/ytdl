@@ -1,0 +1,178 @@
+name: Release
+
+# Builds, notarizes and publishes the YTDL Bridge DMG.
+#
+# Runs on a self-hosted macOS runner whose login keychain already holds:
+#   - a "Developer ID Application" certificate
+#   - a notarytool credential profile (see NOTARY_PROFILE below)
+#
+# Trigger either by pushing a v* tag, or manually via workflow_dispatch
+# (which creates and pushes the tag for you).
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the leading v (e.g. 0.1.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+
+    env:
+      TEAM_ID: ${{ vars.TEAM_ID }}
+      NOTARY_PROFILE: ${{ vars.NOTARY_PROFILE || 'AC_NOTARY' }}
+
+    steps:
+      - name: Resolve version and tag
+        id: v
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version }}"
+            version="${version#v}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$'; then
+            echo "::error::invalid version '$version' (expected N.N.N)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify TEAM_ID is configured
+        run: |
+          set -uo pipefail
+          if [ -z "${TEAM_ID:-}" ]; then
+            echo "::error::repository variable TEAM_ID is not set (Settings > Actions > Variables)"
+            exit 1
+          fi
+
+      - name: Verify signing identity and notary profile
+        run: |
+          set -euo pipefail
+          if ! security find-identity -v -p codesigning \
+               | grep -q "Developer ID Application"; then
+            echo "::error::no 'Developer ID Application' identity in the runner keychain"
+            exit 1
+          fi
+          if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+            echo "::error::notarytool profile '$NOTARY_PROFILE' is not registered on this runner"
+            exit 1
+          fi
+
+      # Local.xcconfig is gitignored, so the CI build needs its own.
+      # YTDL_BIN_PATH is intentionally left empty: the app autodetects ytdl at
+      # runtime and lets the user override the path in its settings.
+      - name: Write Local.xcconfig
+        working-directory: SafariExtension
+        run: |
+          set -euo pipefail
+          cat > Local.xcconfig <<EOF
+          DEVELOPMENT_TEAM = $TEAM_ID
+          YTDL_BIN_PATH =
+          EOF
+
+      - name: Create tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::tag $TAG already exists on origin"
+            exit 1
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              tag -a "$TAG" -m "$TAG"
+          git push origin "refs/tags/$TAG"
+
+      - name: Build, sign and notarize DMG
+        working-directory: SafariExtension
+        run: ./scripts/build_release.sh
+
+      - name: Verify the DMG
+        working-directory: SafariExtension
+        run: |
+          set -euo pipefail
+          test -f build/YTDLBridge.dmg
+          xcrun stapler validate build/YTDLBridge.dmg
+          spctl -a -t exec -vv build/export/YTDLBridge.app
+
+      - name: Rename asset with version
+        id: asset
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          set -euo pipefail
+          out="SafariExtension/build/YTDLBridge-$VERSION.dmg"
+          mv SafariExtension/build/YTDLBridge.dmg "$out"
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+          ASSET: ${{ steps.asset.outputs.path }}
+        run: |
+          set -euo pipefail
+          notes="$(mktemp)"
+          trap 'rm -f "$notes"' EXIT
+          cat > "$notes" <<EOF
+          YTDL Bridge $TAG — a Safari Web Extension that downloads the current
+          video tab to \`~/Downloads/\` via a local \`ytdl\` CLI.
+
+          ## Install
+
+          1. Open the DMG and drag **YTDLBridge** into \`/Applications\`.
+          2. Launch **YTDLBridge** once so Safari picks up the extension.
+          3. Enable **YTDL Bridge** in **Safari → Settings → Extensions** and allow
+             it on every website.
+          4. Grant Full Disk Access when prompted (needed to read Safari's cookies).
+
+          ## Prerequisites on your Mac
+
+          - Python 3.10+
+          - \`deno\` and \`ffmpeg\` (\`brew install deno ffmpeg\`)
+          - The \`ytdl\` CLI from this repo (\`pip install -e .\`)
+
+          The app finds \`ytdl\` automatically. If it can't, set the path in the
+          app's own window.
+
+          Requires Apple Silicon (arm64).
+
+          See the [README](https://github.com/${{ github.repository }}#readme) for
+          full setup.
+          EOF
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --clobber
+          else
+            gh release create "$TAG" "$ASSET" \
+              --title "$TAG" \
+              --notes-file "$notes"
+          fi
+
+      - name: Clean up signing config
+        if: always()
+        run: rm -f SafariExtension/Local.xcconfig

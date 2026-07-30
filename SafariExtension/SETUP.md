@@ -93,9 +93,15 @@ venv + `deno` installed.
    and fill it in:**
    ```
    DEVELOPMENT_TEAM = XXXXXXXXXX               # your Apple Team ID
-   YTDL_BIN_PATH    = /path/to/ytdl/.venv/bin/ytdl
+   YTDL_BIN_PATH    =                          # optional, normally empty
    ```
    `Local.xcconfig` is gitignored so your personal values don't leak.
+
+   Leave `YTDL_BIN_PATH` empty unless you want one specific binary preferred: the
+   app autodetects `ytdl` at runtime (`~/.local/bin`, `/opt/homebrew/bin`,
+   `/usr/local/bin`, then the login shell's `PATH`), and the path can also be set
+   in the app's own window. Never bake an absolute path into a build you intend
+   to distribute — it points at your machine, not the user's.
 
 2. Open `YTDLBridge.xcodeproj` in Xcode (both targets pick up the xcconfig).
 3. Press **⌘R** to build and launch YTDLBridge.
@@ -131,6 +137,23 @@ export NOTARY_PROFILE=AC_NOTARY
 It aborts if the working tree is dirty, the tag already exists locally or on
 `origin`, or `gh`/`notarytool` credentials are missing.
 
+## Releasing from GitHub Actions
+
+[`../.github/workflows/release.yml`](../.github/workflows/release.yml) runs the
+same build on a self-hosted macOS runner (labels `self-hosted`, `macOS`,
+`ARM64`), triggered by a `v*` tag push or manually via **Run workflow**.
+
+It uses the runner's login keychain instead of secrets, so the runner needs the
+Developer ID certificate installed and a `notarytool` profile registered once
+(`AC_NOTARY` by default). Set the repository variable `TEAM_ID`; override
+`NOTARY_PROFILE` only if yours is named differently.
+
+Run the runner service as your user in a GUI session — as a LaunchDaemon it
+can't unlock the login keychain and `codesign` fails to find the identity.
+
+The workflow writes `Local.xcconfig` itself (with an empty `YTDL_BIN_PATH`) and
+removes it when finished.
+
 First-time notary credential setup:
 
 ```bash
@@ -151,6 +174,7 @@ xcrun notarytool store-credentials AC_NOTARY \
 
 - Destination is hardcoded to `~/Downloads/`.
 - No quality picker beyond video / audio-only.
-- The `ytdl` binary path is set via `Local.xcconfig` (`YTDL_BIN_PATH`) and baked
-  into `Info.plist` at build time; update the xcconfig and rebuild if the venv
-  moves.
+- `ytdl` is located at runtime, not baked in. If autodetection picks the wrong
+  binary, set the path in the app's window (stored in `UserDefaults` under
+  `YTDLBinPath`).
+- Apple Silicon (arm64) only.
