@@ -87,19 +87,43 @@ if (browser.windows?.onFocusChanged) {
   });
 }
 
+// Strip the playback position out of the URL. yt-dlp reads `t`/`start` as a
+// download start offset, so a link copied mid-playback would only fetch the
+// tail of the video. We always want the whole thing.
+function normalizeUrl(raw) {
+  try {
+    const u = new URL(raw);
+    if (/(^|\.)youtube(-nocookie)?\.com$/i.test(u.hostname)) {
+      const v = u.searchParams.get("v");
+      if (v) return `https://www.youtube.com/watch?v=${encodeURIComponent(v)}`;
+    }
+    if (/^youtu\.be$/i.test(u.hostname)) {
+      const id = u.pathname.slice(1).split("/")[0];
+      if (id) return `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+    }
+    for (const key of ["t", "start", "start_time", "time_continue"]) {
+      u.searchParams.delete(key);
+    }
+    return u.toString();
+  } catch {
+    return raw;
+  }
+}
+
 async function download(audioOnly = false) {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) return;
+  const url = normalizeUrl(tab.url);
   try {
     const resp = await browser.runtime.sendNativeMessage("application.id", {
-      url: tab.url,
+      url,
       audioOnly,
     });
     await browser.notifications.create({
       type: "basic",
       iconUrl: "icons/128.png",
       title: resp?.ok ? "ytdl started" : "ytdl failed",
-      message: resp?.message ?? tab.url,
+      message: resp?.message ?? url,
     });
   } catch (e) {
     await browser.notifications.create({
