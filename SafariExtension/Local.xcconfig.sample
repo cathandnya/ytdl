@@ -6,7 +6,10 @@
 // Find it in Xcode > Settings > Accounts > <your Apple ID> > "Manage Certificates..." (top-right).
 DEVELOPMENT_TEAM = XXXXXXXXXX
 
-// Absolute path to the ytdl binary the app should invoke.
-// Typically the ytdl executable installed by `pip install -e .` into the venv.
+// OPTIONAL. Absolute path to the ytdl binary, used as the first autodetection
+// candidate. Leave it empty for release builds: the app finds ytdl on its own
+// (~/.local/bin, /opt/homebrew/bin, /usr/local/bin, then the login shell's PATH),
+// and users can override the path in the app's own settings.
+// Only set this if you want a specific binary preferred during development.
 // Example: /Users/you/Documents/Development/ytdl/.venv/bin/ytdl
-YTDL_BIN_PATH = /path/to/ytdl/.venv/bin/ytdl
+YTDL_BIN_PATH =

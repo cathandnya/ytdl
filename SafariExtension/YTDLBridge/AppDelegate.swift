@@ -58,13 +58,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func runYtdl(targetURL: URL, audioOnly: Bool) throws {
-        let ytdlPath = configuredYtdlPath()
         let downloads = ("~/Downloads" as NSString).expandingTildeInPath
-        guard FileManager.default.isExecutableFile(atPath: ytdlPath) else {
+        guard let ytdlPath = resolveYtdlPath() else {
             throw NSError(domain: "YTDLBridge", code: 2,
                           userInfo: [NSLocalizedDescriptionKey:
-                              "ytdl not found at \(ytdlPath).\n" +
-                              "Set YTDL_BIN_PATH in SafariExtension/Local.xcconfig and rebuild."])
+                              "ytdl executable not found.\n" +
+                              "Looked in: \(ytdlSearchPaths().joined(separator: ", ")).\n" +
+                              "Install it with `pip install -e .` (or pipx install), " +
+                              "or set YTDL_BIN_PATH in Local.xcconfig and rebuild."])
         }
 
         var args = ["-d", downloads]
@@ -123,11 +124,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool { false }
-}
-
-private func configuredYtdlPath() -> String {
-    let raw = (Bundle.main.object(forInfoDictionaryKey: "YTDLBinPath") as? String) ?? ""
-    return (raw as NSString).expandingTildeInPath
 }
 
 private func checkSafariCookieAccess() {

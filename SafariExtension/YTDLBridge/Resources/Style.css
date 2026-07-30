@@ -43,3 +43,53 @@ body.state-off :is(.state-on, .state-unknown) {
 button {
     font-size: 1em;
 }
+
+hr {
+    width: 100%;
+    border: none;
+    border-top: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    margin: 0;
+}
+
+.ytdl-path {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) / 2);
+    width: 100%;
+}
+
+.ytdl-path-row {
+    display: flex;
+    gap: calc(var(--spacing) / 4);
+}
+
+.ytdl-path input {
+    flex: 1;
+    min-width: 0;
+    font: -apple-system-short-body;
+    font-family: ui-monospace, monospace;
+    -webkit-user-select: text;
+    cursor: text;
+}
+
+.ytdl-path-actions {
+    display: flex;
+    justify-content: center;
+    gap: calc(var(--spacing) / 4);
+}
+
+.ytdl-path-status {
+    margin: 0;
+    font-size: 0.85em;
+    opacity: 0.7;
+    -webkit-user-select: text;
+    word-break: break-all;
+}
+
+.ytdl-path-status.ok { color: #1a7f37; opacity: 1; }
+.ytdl-path-status.error { color: #cf222e; opacity: 1; }
+
+@media (prefers-color-scheme: dark) {
+    .ytdl-path-status.ok { color: #3fb950; }
+    .ytdl-path-status.error { color: #f85149; }
+}

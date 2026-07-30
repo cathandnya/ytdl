@@ -15,5 +15,21 @@
     <p class="state-on">YTDLBridge’s extension is currently on. You can turn it off in Safari’s Extensions settings.</p>
     <p class="state-off">YTDLBridge’s extension is currently off. You can turn it on in Safari’s Extensions settings.</p>
     <button class="open-preferences">Quit and Open Safari Extensions Settings…</button>
+
+    <hr>
+
+    <section class="ytdl-path">
+        <label for="ytdl-path-input">Path to the <code>ytdl</code> command</label>
+        <div class="ytdl-path-row">
+            <input id="ytdl-path-input" type="text" spellcheck="false"
+                   autocomplete="off" placeholder="/path/to/ytdl">
+            <button class="browse" title="Choose…">Choose…</button>
+        </div>
+        <p class="ytdl-path-status"></p>
+        <div class="ytdl-path-actions">
+            <button class="save">Save</button>
+            <button class="reset">Use detected path</button>
+        </div>
+    </section>
 </body>
 </html>
