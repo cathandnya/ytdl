@@ -9,6 +9,8 @@ private let safariCookiesPath =
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_: Notification) {
+        installEditMenu()
+
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
 
         NSAppleEventManager.shared().setEventHandler(
@@ -124,6 +126,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool { false }
+
+    /// Add an Edit menu so the standard editing shortcuts work.
+    ///
+    /// On macOS ⌘V is delivered by the Edit menu's Paste item sending `paste:` —
+    /// without the menu item the key equivalent isn't bound to anything, so the
+    /// ytdl path field can't be pasted into.
+    private func installEditMenu() {
+        guard let mainMenu = NSApp.mainMenu else { return }
+        let alreadyInstalled = mainMenu.items.contains {
+            $0.submenu?.items.contains { $0.action == #selector(NSText.paste(_:)) } ?? false
+        }
+        if alreadyInstalled { return }
+
+        let editMenu = NSMenu(title: "Edit")
+        // nil action marks a separator. undo:/redo: aren't exposed on any class
+        // we can use #selector on, so they're built by name.
+        let items: [(String, Selector?, String)] = [
+            ("Undo", Selector(("undo:")), "z"),
+            ("Redo", Selector(("redo:")), "Z"),
+            ("", nil, ""),
+            ("Cut", #selector(NSText.cut(_:)), "x"),
+            ("Copy", #selector(NSText.copy(_:)), "c"),
+            ("Paste", #selector(NSText.paste(_:)), "v"),
+            ("Select All", #selector(NSText.selectAll(_:)), "a"),
+        ]
+        for (title, action, key) in items {
+            guard let action else {
+                editMenu.addItem(.separator())
+                continue
+            }
+            editMenu.addItem(withTitle: title, action: action, keyEquivalent: key)
+        }
+
+        let editItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
+        editItem.submenu = editMenu
+        // Slot it after the app menu, where Edit conventionally lives.
+        mainMenu.insertItem(editItem, at: min(1, mainMenu.items.count))
+    }
 }
 
 private func checkSafariCookieAccess() {
